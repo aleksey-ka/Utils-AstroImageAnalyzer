@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using AstroImageAnalyzer.Core.Models;
 using AstroImageAnalyzer.Core.Services;
+using AstroImageAnalyzer.UI;
 using Microsoft.Win32;
 using OxyPlot;
 using OxyPlot.Axes;
@@ -33,7 +34,8 @@ public class MainViewModel : INotifyPropertyChanged
         _statisticsCalculator = statisticsCalculator;
         
         LoadFilesCommand = new RelayCommand(_ => LoadFiles());
-        
+        LoadLastFileCommand = new RelayCommand(_ => LoadLastFile());
+
         HistogramModel = CreateEmptyHistogramModel();
     }
     
@@ -48,6 +50,8 @@ public class MainViewModel : INotifyPropertyChanged
             _selectedImage = value;
             OnPropertyChanged();
             UpdateSelectedStatistics();
+            if (value != null)
+                WindowPlacement.SaveLastFilePath(value.FilePath);
         }
     }
     
@@ -78,6 +82,7 @@ public class MainViewModel : INotifyPropertyChanged
     public bool HasLoadedFolder => !string.IsNullOrEmpty(_loadedFolderName);
     
     public ICommand LoadFilesCommand { get; }
+    public ICommand LoadLastFileCommand { get; }
     
     public PlotModel? HistogramModel
     {
@@ -112,6 +117,22 @@ public class MainViewModel : INotifyPropertyChanged
         {
             LoadFromFilePath(dialog.FileName);
         }
+    }
+
+    private void LoadLastFile()
+    {
+        var path = WindowPlacement.GetLastFilePath();
+        if (string.IsNullOrEmpty(path))
+        {
+            StatusMessage = "No previous file to load";
+            return;
+        }
+        if (!File.Exists(path))
+        {
+            StatusMessage = "Previous file no longer exists";
+            return;
+        }
+        LoadFromFilePath(path);
     }
     
     /// <summary>

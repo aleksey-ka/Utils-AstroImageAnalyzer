@@ -111,13 +111,22 @@
     <Style TargetType="Menu">
         <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- MenuItem Style with custom dark template -->
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
-        <!-- Slightly larger font; padding and fixed height so text is truly centered -->
+        <Setter Property="Margin" Value="0"/>
+        <!-- Slightly larger font; padding for submenu items (with gesture text) set via trigger -->
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Padding" Value="8,0"/>
         <Setter Property="Height" Value="30"/>
@@ -125,23 +134,41 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
-                    <Grid>
+                    <Grid HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- Top-level / submenu item surface -->
+                        <!-- Top-level / submenu item surface: header + optional gesture text -->
                     <Border x:Name="Border"
                             Grid.ColumnSpan="3"
+                            HorizontalAlignment="Stretch"
                             Background="{TemplateBinding Background}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="0,0,0,0">
-                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                          ContentSource="Header"
-                                          RecognizesAccessKey="True"
-                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        <Grid HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Grid.Column="0"
+                                              Margin="{TemplateBinding Padding}"
+                                              ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              HorizontalAlignment="Left"/>
+                            <TextBlock Grid.Column="2"
+                                       Text="{TemplateBinding InputGestureText}"
+                                       Margin="24,0,8,0"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"
+                                       FontSize="12"
+                                       MinWidth="64"/>
+                        </Grid>
                     </Border>
 
                         <!-- Submenu indicator arrow -->
@@ -162,6 +189,7 @@
                             <Border Background="{StaticResource SurfaceBrush}"
                                     BorderBrush="{StaticResource BorderBrush}"
                                     BorderThickness="1"
+                                    Padding="4,2"
                                     SnapsToDevicePixels="True">
                                 <StackPanel IsItemsHost="True"
                                             KeyboardNavigation.DirectionalNavigation="Cycle"/>
@@ -193,6 +221,15 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <Trigger Property="Role" Value="TopLevelHeader">
+                <Setter Property="Padding" Value="2,0"/>
+                <Setter Property="Margin" Value="0"/>
+            </Trigger>
+            <Trigger Property="Role" Value="SubmenuItem">
+                <Setter Property="Padding" Value="16,0,20,0"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
     
     <!-- GroupBox Style (no-op: currently not used) -->

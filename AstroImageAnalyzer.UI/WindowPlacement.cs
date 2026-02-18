@@ -13,6 +13,7 @@ public static class WindowPlacement
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "AstroImageAnalyzer");
     private static readonly string SettingsPath = Path.Combine(SettingsDirectory, "window.json");
+    private static readonly string LastFilePath = Path.Combine(SettingsDirectory, "lastfile.txt");
 
     public record SavedState(double Left, double Top, double Width, double Height, int WindowState);
 
@@ -93,6 +94,40 @@ public static class WindowPlacement
         catch
         {
             // Use default size and position
+        }
+    }
+
+    /// <summary>
+    /// Saves the path of the last selected file so Ctrl+L can reload that folder with that file selected.
+    /// </summary>
+    public static void SaveLastFilePath(string filePath)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(filePath)) return;
+            Directory.CreateDirectory(SettingsDirectory);
+            File.WriteAllText(LastFilePath, filePath.Trim());
+        }
+        catch
+        {
+            // Ignore
+        }
+    }
+
+    /// <summary>
+    /// Returns the path of the last selected file, or null if none saved or file no longer exists.
+    /// </summary>
+    public static string? GetLastFilePath()
+    {
+        try
+        {
+            if (!File.Exists(LastFilePath)) return null;
+            var path = File.ReadAllText(LastFilePath).Trim();
+            return string.IsNullOrEmpty(path) ? null : path;
+        }
+        catch
+        {
+            return null;
         }
     }
 }

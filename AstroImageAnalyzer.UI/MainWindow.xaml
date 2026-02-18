@@ -21,6 +21,9 @@
         <KeyBinding Key="F"
                     Modifiers="Control"
                     Command="{x:Static local:MainWindow.ToggleFullScreenCommand}" />
+        <KeyBinding Key="L"
+                    Modifiers="Control"
+                    Command="{Binding LoadLastFileCommand}" />
     </Window.InputBindings>
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="0"
@@ -46,6 +49,49 @@
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"/>
                         </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Compact template for top-level menu items (File, View) so they don't stretch -->
+        <Style x:Key="TopLevelMenuHeaderStyle" TargetType="MenuItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Grid>
+                            <Border x:Name="Border"
+                                    Background="{TemplateBinding Background}"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsSubmenuOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Background="{StaticResource SurfaceBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="4,2"
+                                        SnapsToDevicePixels="True">
+                                    <StackPanel IsItemsHost="True"
+                                                KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource SurfaceLightBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -92,11 +138,22 @@
                       Background="Transparent"
                       Foreground="{StaticResource TextBrush}"
                       VerticalAlignment="Center"
-                      Height="30">
-                    <MenuItem Header="_File">
+                      Height="30"
+                      Padding="0">
+                    <MenuItem Header="_File"
+                              Style="{StaticResource TopLevelMenuHeaderStyle}">
                         <MenuItem Header="_Open..."
                                   Command="{Binding LoadFilesCommand}"
                                   InputGestureText="Ctrl+O"/>
+                        <MenuItem Header="Open _Last"
+                                  Command="{Binding LoadLastFileCommand}"
+                                  InputGestureText="Ctrl+L"/>
+                    </MenuItem>
+                    <MenuItem Header="_View"
+                              Style="{StaticResource TopLevelMenuHeaderStyle}">
+                        <MenuItem Header="_Toggle Full Screen"
+                                  Command="{x:Static local:MainWindow.ToggleFullScreenCommand}"
+                                  InputGestureText="Ctrl+F"/>
                     </MenuItem>
                 </Menu>
                 
