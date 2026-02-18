@@ -69,4 +69,26 @@ public class FitsReaderTests
         // In a production test suite, you would use test FITS files or mocks
         Assert.Throws<FileNotFoundException>(() => _reader.ReadFitsFiles(filePaths).ToList());
     }
+
+    [Fact]
+    public void ReadFitsFile_WithCfaFile02Fit_ReadsBayerPatternGrbg()
+    {
+        var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+        var assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
+        var projectRoot = Path.GetFullPath(Path.Combine(assemblyDirectory!, "..", "..", "..", ".."));
+        var testDataPath = Path.Combine(projectRoot, "AstroImageAnalyzer.Tests", "TestData", "02.fit");
+
+        if (!File.Exists(testDataPath))
+        {
+            Assert.Fail($"Test data file not found at: {testDataPath}. Please ensure 02.fit exists in AstroImageAnalyzer.Tests\\TestData");
+        }
+
+        var image = _reader.ReadFitsFile(testDataPath);
+
+        Assert.NotNull(image);
+        Assert.True(image.Width > 0, $"Expected width > 0, got {image.Width}");
+        Assert.True(image.Height > 0, $"Expected height > 0, got {image.Height}");
+        Assert.NotNull(image.PixelData);
+        Assert.Equal("GRBG", image.BayerPattern);
+    }
 }

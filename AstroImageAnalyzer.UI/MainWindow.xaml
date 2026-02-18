@@ -96,6 +96,41 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Style for checkable submenu items (e.g. Debayer) so the check mark is visible -->
+        <Style x:Key="CheckableMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Padding" Value="24,6,12,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="CheckMark" Grid.Column="0" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource SurfaceLightBrush}"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource Self}}" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource Self}}" Value="False">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Border x:Name="RootBorder"
             Background="{StaticResource BackgroundBrush}"
@@ -151,6 +186,12 @@
                     </MenuItem>
                     <MenuItem Header="_View"
                               Style="{StaticResource TopLevelMenuHeaderStyle}">
+                        <MenuItem Header="_Debayer"
+                                  Style="{StaticResource CheckableMenuItemStyle}"
+                                  Command="{Binding ToggleDebayerCommand}"
+                                  IsCheckable="True"
+                                  IsChecked="{Binding IsDebayerEnabled, Mode=OneWay}"
+                                  ToolTip="Show CFA (Bayer) images in color when enabled"/>
                         <MenuItem Header="_Toggle Full Screen"
                                   Command="{x:Static local:MainWindow.ToggleFullScreenCommand}"
                                   InputGestureText="Ctrl+F"/>

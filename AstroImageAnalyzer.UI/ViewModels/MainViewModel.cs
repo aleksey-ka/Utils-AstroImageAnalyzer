@@ -27,7 +27,8 @@ public class MainViewModel : INotifyPropertyChanged
     private string? _loadedFolderName;
     private PlotModel? _histogramModel;
     private ImageSource? _previewImage;
-    
+    private bool _isDebayerEnabled;
+
     public MainViewModel(IFitsReader fitsReader, IStatisticsCalculator statisticsCalculator)
     {
         _fitsReader = fitsReader;
@@ -35,6 +36,7 @@ public class MainViewModel : INotifyPropertyChanged
         
         LoadFilesCommand = new RelayCommand(_ => LoadFiles());
         LoadLastFileCommand = new RelayCommand(_ => LoadLastFile());
+        ToggleDebayerCommand = new RelayCommand(_ => IsDebayerEnabled = !IsDebayerEnabled);
 
         HistogramModel = CreateEmptyHistogramModel();
     }
@@ -83,6 +85,7 @@ public class MainViewModel : INotifyPropertyChanged
     
     public ICommand LoadFilesCommand { get; }
     public ICommand LoadLastFileCommand { get; }
+    public ICommand ToggleDebayerCommand { get; }
     
     public PlotModel? HistogramModel
     {
@@ -103,7 +106,20 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
-    
+
+    /// <summary>When true and the image has a Bayer pattern, preview is debayered to color.</summary>
+    public bool IsDebayerEnabled
+    {
+        get => _isDebayerEnabled;
+        set
+        {
+            if (_isDebayerEnabled == value) return;
+            _isDebayerEnabled = value;
+            OnPropertyChanged();
+            UpdatePreviewImage();
+        }
+    }
+
     private void LoadFiles()
     {
         var dialog = new OpenFileDialog
@@ -261,8 +277,6 @@ public class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        // Flatten pixel data and compute min/max for normalization
-        var pixels = new byte[width * height];
         double min = double.MaxValue;
         double max = double.MinValue;
 
@@ -279,41 +293,58 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (min == double.MaxValue || max == double.MinValue || max <= min)
         {
-            // Degenerate image; just clear preview
             PreviewImage = null;
             return;
         }
 
-        double range = max - min;
-        int index = 0;
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                double v = SelectedImage.PixelData[y, x];
-                if (double.IsNaN(v) || double.IsInfinity(v))
-                {
-                    pixels[index++] = 0;
-                    continue;
-                }
-
-                double norm = (v - min) / range; // 0..1
-                byte b = (byte)Math.Clamp(norm * 255.0, 0.0, 255.0);
-                pixels[index++] = b;
-            }
-        }
-
         int dpi = 96;
-        int stride = width; // Gray8: 1 byte per pixel
-        var bitmap = BitmapSource.Create(
-            width,
-            height,
-            dpi,
-            dpi,
-            PixelFormats.Gray8,
-            null,
-            pixels,
-            stride);
+        BitmapSource bitmap;
+
+        bool useDebayer = IsDebayerEnabled && !string.IsNullOrEmpty(SelectedImage.BayerPattern);
+
+        if (useDebayer)
+        {
+            byte[] bgr = DebayerService.DebayerBilinear(SelectedImage.PixelData, SelectedImage.BayerPattern!, min, max);
+            int stride = width * 3;
+            bitmap = BitmapSource.Create(
+                width,
+                height,
+                dpi,
+                dpi,
+                PixelFormats.Bgr24,
+                null,
+                bgr,
+                stride);
+        }
+        else
+        {
+            var pixels = new byte[width * height];
+            double range = max - min;
+            int index = 0;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    double v = SelectedImage.PixelData[y, x];
+                    if (double.IsNaN(v) || double.IsInfinity(v))
+                    {
+                        pixels[index++] = 0;
+                        continue;
+                    }
+                    double norm = (v - min) / range;
+                    pixels[index++] = (byte)Math.Clamp(norm * 255.0, 0.0, 255.0);
+                }
+            }
+            bitmap = BitmapSource.Create(
+                width,
+                height,
+                dpi,
+                dpi,
+                PixelFormats.Gray8,
+                null,
+                pixels,
+                width);
+        }
 
         bitmap.Freeze();
         PreviewImage = bitmap;

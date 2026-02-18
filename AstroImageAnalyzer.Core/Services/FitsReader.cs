@@ -115,13 +115,16 @@ public class FitsReader : IFitsReader
         headerDict["NAXIS2"] = height.ToString(CultureInfo.InvariantCulture);
         headerDict["BITPIX"] = bitpix.ToString(CultureInfo.InvariantCulture);
 
+        string? bayerPattern = TryGetBayerPattern(headerDict);
+
         return new FitsImageData
         {
             PixelData = pixelData,
             Width = width,
             Height = height,
             Header = headerDict,
-            FilePath = filePath
+            FilePath = filePath,
+            BayerPattern = bayerPattern
         };
     }
 
@@ -141,6 +144,15 @@ public class FitsReader : IFitsReader
 
         valueStr = valueStr.Trim().Trim('\'');
         return double.TryParse(valueStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : null;
+    }
+
+    private static string? TryGetBayerPattern(Dictionary<string, string> header)
+    {
+        if (!header.TryGetValue("BAYERPAT", out var value))
+            return null;
+        // FITS string values are often 'PATTERN    ' with trailing spaces inside quotes
+        var pattern = value.Trim().Trim('\'').Trim().ToUpperInvariant();
+        return pattern is "RGGB" or "BGGR" or "GRBG" or "GBRG" ? pattern : null;
     }
 
     private static void ReadInt16Image(Stream fs, double[,] pixelData, int width, int height, double bscale, double bzero)

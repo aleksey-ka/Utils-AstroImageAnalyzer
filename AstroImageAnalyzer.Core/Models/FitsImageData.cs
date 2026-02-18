@@ -34,4 +34,10 @@ public class FitsImageData
     /// File name without path
     /// </summary>
     public string FileName => Path.GetFileName(FilePath);
+
+    /// <summary>
+    /// Bayer/CFA pattern from FITS header (e.g. RGGB, BGGR, GRBG, GBRG).
+    /// Null when the image is not a color filter array.
+    /// </summary>
+    public string? BayerPattern { get; set; }
 }
