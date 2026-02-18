@@ -44,6 +44,25 @@ public static class WindowPlacement
         }
     }
 
+    /// <summary>
+    /// Saves explicit bounds as the normal (restored) window state.
+    /// Used when closing in full screen so the app reopens at the same position/size.
+    /// </summary>
+    public static void SaveRestoreBounds(double left, double top, double width, double height)
+    {
+        try
+        {
+            var state = new SavedState(left, top, width, height, (int)System.Windows.WindowState.Normal);
+            Directory.CreateDirectory(SettingsDirectory);
+            var json = JsonSerializer.Serialize(state);
+            File.WriteAllText(SettingsPath, json);
+        }
+        catch
+        {
+            // Ignore persistence errors
+        }
+    }
+
     public static void Restore(Window window, double defaultWidth, double defaultHeight)
     {
         try

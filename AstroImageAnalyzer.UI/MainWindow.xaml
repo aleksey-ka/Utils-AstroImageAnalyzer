@@ -18,6 +18,9 @@
         <KeyBinding Key="O"
                     Modifiers="Control"
                     Command="{Binding LoadFilesCommand}" />
+        <KeyBinding Key="F"
+                    Modifiers="Control"
+                    Command="{x:Static local:MainWindow.ToggleFullScreenCommand}" />
     </Window.InputBindings>
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="0"
@@ -48,7 +51,8 @@
             </Setter>
         </Style>
     </Window.Resources>
-    <Border Background="{StaticResource BackgroundBrush}"
+    <Border x:Name="RootBorder"
+            Background="{StaticResource BackgroundBrush}"
             BorderBrush="{StaticResource WindowBorderBrush}"
             BorderThickness="1">
         <Grid Background="{StaticResource BackgroundBrush}">
@@ -58,8 +62,9 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <!-- Custom Title Bar with Menu -->
-        <Border Grid.Row="0"
+        <!-- Custom Title Bar with Menu (hidden in full screen) -->
+        <Border x:Name="TitleBarBorder"
+                Grid.Row="0"
                 Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1"
@@ -143,6 +148,40 @@
                             BorderThickness="0"
                             Click="MaximizeButton_Click"
                             Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderThickness="0">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SurfaceLightBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <Button x:Name="FullScreenButton"
+                            Content="&#xE740;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="10"
+                            Width="46"
+                            Height="30"
+                            Background="Transparent"
+                            Foreground="{StaticResource TextBrush}"
+                            BorderThickness="0"
+                            Click="FullScreenButton_Click"
+                            Cursor="Hand"
+                            ToolTip="Toggle full screen">
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Template">

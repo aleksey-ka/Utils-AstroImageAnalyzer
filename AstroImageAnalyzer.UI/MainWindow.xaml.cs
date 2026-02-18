@@ -10,9 +10,16 @@ namespace AstroImageAnalyzer.UI;
 /// </summary>
 public partial class MainWindow : Window
 {
+    public static readonly RoutedCommand ToggleFullScreenCommand = new();
+
+    private bool _isFullScreen;
+    private double _restoreLeft, _restoreTop, _restoreWidth, _restoreHeight;
+
     public MainWindow()
     {
         InitializeComponent();
+
+        CommandBindings.Add(new CommandBinding(ToggleFullScreenCommand, (_, _) => ToggleFullScreen()));
         
         // Restore last position and size (or keep XAML defaults)
         WindowPlacement.Restore(this, 1400, 900);
@@ -25,13 +32,27 @@ public partial class MainWindow : Window
         // Update maximize button icon when window state changes
         StateChanged += MainWindow_StateChanged;
         UpdateMaximizeButton();
+        UpdateFullScreenButton();
         
         Closing += MainWindow_Closing;
+        KeyDown += MainWindow_KeyDown;
+    }
+
+    private void MainWindow_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && _isFullScreen)
+        {
+            ExitFullScreen();
+            e.Handled = true;
+        }
     }
     
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        WindowPlacement.Save(this);
+        if (_isFullScreen)
+            WindowPlacement.SaveRestoreBounds(_restoreLeft, _restoreTop, _restoreWidth, _restoreHeight);
+        else
+            WindowPlacement.Save(this);
     }
     
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -83,6 +104,80 @@ public partial class MainWindow : Window
         if (MaximizeButton != null)
         {
             MaximizeButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
+        }
+    }
+
+    private void FullScreenButton_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleFullScreen();
+    }
+
+    private void ToggleFullScreen()
+    {
+        if (_isFullScreen)
+        {
+            ExitFullScreen();
+        }
+        else
+        {
+            EnterFullScreen();
+        }
+    }
+
+    private void EnterFullScreen()
+    {
+        // Save current position and size (use RestoreBounds if already maximized)
+        if (WindowState == WindowState.Maximized)
+        {
+            _restoreLeft = RestoreBounds.Left;
+            _restoreTop = RestoreBounds.Top;
+            _restoreWidth = RestoreBounds.Width;
+            _restoreHeight = RestoreBounds.Height;
+        }
+        else
+        {
+            _restoreLeft = Left;
+            _restoreTop = Top;
+            _restoreWidth = Width;
+            _restoreHeight = Height;
+        }
+
+        WindowPlacement.SaveRestoreBounds(_restoreLeft, _restoreTop, _restoreWidth, _restoreHeight);
+
+        // Size window to the work area (screen minus taskbar) so the bottom border and status bar stay visible
+        var workArea = SystemParameters.WorkArea;
+        Left = workArea.Left;
+        Top = workArea.Top;
+        Width = workArea.Width;
+        Height = workArea.Height;
+        WindowState = WindowState.Normal;
+        WindowStartupLocation = WindowStartupLocation.Manual;
+
+        _isFullScreen = true;
+        UpdateFullScreenButton();
+    }
+
+    private void ExitFullScreen()
+    {
+        _isFullScreen = false;
+        WindowState = WindowState.Normal;
+
+        Left = _restoreLeft;
+        Top = _restoreTop;
+        Width = _restoreWidth;
+        Height = _restoreHeight;
+        WindowStartupLocation = WindowStartupLocation.Manual;
+
+        WindowPlacement.Save(this);
+        UpdateFullScreenButton();
+    }
+
+    private void UpdateFullScreenButton()
+    {
+        if (FullScreenButton != null)
+        {
+            // E740 = full screen (expand), E73E = exit full screen (back to window)
+            FullScreenButton.Content = _isFullScreen ? "\uE73E" : "\uE740";
         }
     }
 
