@@ -6,6 +6,7 @@
     <Color x:Key="SurfaceColor">#FF2D2D30</Color>
     <Color x:Key="SurfaceLightColor">#FF3E3E42</Color>
     <Color x:Key="BorderColor">#FF464647</Color>
+    <Color x:Key="WindowBorderColor">#FF5C5C5E</Color>
     <Color x:Key="TextColor">#FFFFFFFF</Color>
     <Color x:Key="TextSecondaryColor">#FFB0B0B0</Color>
     <Color x:Key="AccentColor">#FF0078D4</Color>
@@ -18,6 +19,7 @@
     <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
     <SolidColorBrush x:Key="SurfaceLightBrush" Color="{StaticResource SurfaceLightColor}"/>
     <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="WindowBorderBrush" Color="{StaticResource WindowBorderColor}"/>
     <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}"/>
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
     <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>

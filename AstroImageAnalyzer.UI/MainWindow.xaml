@@ -48,7 +48,10 @@
             </Setter>
         </Style>
     </Window.Resources>
-    <Grid Background="{StaticResource BackgroundBrush}" Margin="-1,-1,-1,-1">
+    <Border Background="{StaticResource BackgroundBrush}"
+            BorderBrush="{StaticResource WindowBorderBrush}"
+            BorderThickness="1">
+        <Grid Background="{StaticResource BackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -207,9 +210,9 @@
                 <ColumnDefinition Width="240"/>
             </Grid.ColumnDefinitions>
             
-            <!-- File List Panel -->
+            <!-- File List Panel (same border as image/chart/statistics panels) -->
             <Border Grid.Column="0"
-                    Margin="0,0,1,0"
+                    Margin="1,0,1,0"
                     Background="{StaticResource SurfaceBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="1">
@@ -221,11 +224,12 @@
 
                     <TextBlock Text="{Binding LoadedFolderName}"
                                FontWeight="Bold"
-                               Margin="6,4,6,4"
+                               Margin="1,2,1,0"
                                Visibility="{Binding HasLoadedFolder, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                     <ListBox Grid.Row="1"
-                             Margin="4,0,4,4"
+                             Margin="0"
+                             BorderThickness="0"
                              ItemsSource="{Binding LoadedImages}" 
                              SelectedItem="{Binding SelectedImage}"
                              DisplayMemberPath="FileName"
@@ -341,5 +345,6 @@
         <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
             <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}"/>
         </Border>
-    </Grid>
+        </Grid>
+    </Border>
 </Window>
