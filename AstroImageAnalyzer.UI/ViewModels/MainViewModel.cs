@@ -54,6 +54,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _selectedImage = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsDebayerAvailable));
             UpdateSelectedStatistics();
             if (value != null)
                 WindowPlacement.SaveLastFilePath(value.FilePath);
@@ -121,6 +122,9 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+
+    /// <summary>True when the selected image is CFA (has a Bayer pattern); enables the Debayer menu item.</summary>
+    public bool IsDebayerAvailable => !string.IsNullOrEmpty(SelectedImage?.BayerPattern);
 
     /// <summary>When true and the image has a Bayer pattern, preview is debayered to color.</summary>
     public bool IsDebayerEnabled

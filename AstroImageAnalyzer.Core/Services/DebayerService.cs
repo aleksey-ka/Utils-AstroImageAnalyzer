@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+
 namespace AstroImageAnalyzer.Core.Services;
 
 /// <summary>
@@ -20,63 +23,81 @@ public static class DebayerService
         int width = pixelData.GetLength(1);
         double range = max > min ? max - min : 1.0;
 
+        // Precompute pattern index and channel lookup (0=R, 1=G, 2=B) for (r,c) in 2x2
+        int pi = PatternIndex(pattern);
+        byte[] ch = new byte[4];
+        ch[0] = (byte)ChannelAt(pi, 0, 0);
+        ch[1] = (byte)ChannelAt(pi, 0, 1);
+        ch[2] = (byte)ChannelAt(pi, 1, 0);
+        ch[3] = (byte)ChannelAt(pi, 1, 1);
+
         var R = new double[height, width];
         var G = new double[height, width];
         var B = new double[height, width];
 
-        for (int y = 0; y < height; y++)
+        // Phase 1: copy known channel values from raw (parallel over rows)
+        Parallel.For(0, height, y =>
         {
+            int ry = y & 1;
             for (int x = 0; x < width; x++)
             {
+                int rx = x & 1;
+                int c = ch[(ry << 1) + rx];
                 double v = pixelData[y, x];
                 if (double.IsNaN(v) || double.IsInfinity(v))
                     v = min;
-                int ch = ChannelAt(pattern, y & 1, x & 1);
-                if (ch == 0) R[y, x] = v;
-                else if (ch == 1) G[y, x] = v;
+                if (c == 0) R[y, x] = v;
+                else if (c == 1) G[y, x] = v;
                 else B[y, x] = v;
             }
-        }
+        });
 
-        // Bilinear interpolate missing channels (only from same-channel Bayer positions)
-        for (int y = 0; y < height; y++)
+        // Phase 2: interpolate missing channels (3x3 neighborhood, parallel over rows)
+        Parallel.For(0, height, y =>
         {
+            int ry = y & 1;
             for (int x = 0; x < width; x++)
             {
-                if (ChannelAt(pattern, y & 1, x & 1) != 0) R[y, x] = InterpBilinearSameChannel(R, width, height, pattern, x, y, 0);
-                if (ChannelAt(pattern, y & 1, x & 1) != 1) G[y, x] = InterpBilinearSameChannel(G, width, height, pattern, x, y, 1);
-                if (ChannelAt(pattern, y & 1, x & 1) != 2) B[y, x] = InterpBilinearSameChannel(B, width, height, pattern, x, y, 2);
+                int rx = x & 1;
+                int cur = ch[(ry << 1) + rx];
+                if (cur != 0) R[y, x] = Interp3x3(R, width, height, y, x, pi, 0);
+                if (cur != 1) G[y, x] = Interp3x3(G, width, height, y, x, pi, 1);
+                if (cur != 2) B[y, x] = Interp3x3(B, width, height, y, x, pi, 2);
             }
-        }
+        });
 
+        // Phase 3: normalize and write BGR (parallel over rows)
         var bgr = new byte[width * height * 3];
-        int idx = 0;
-        for (int y = 0; y < height; y++)
+        Parallel.For(0, height, y =>
         {
+            int rowStart = y * width * 3;
             for (int x = 0; x < width; x++)
             {
+                int idx = rowStart + x * 3;
                 double r = (R[y, x] - min) / range;
                 double g = (G[y, x] - min) / range;
                 double b = (B[y, x] - min) / range;
-                bgr[idx++] = (byte)Math.Clamp(b * 255, 0, 255);
-                bgr[idx++] = (byte)Math.Clamp(g * 255, 0, 255);
-                bgr[idx++] = (byte)Math.Clamp(r * 255, 0, 255);
+                bgr[idx] = (byte)Math.Clamp(b * 255, 0, 255);
+                bgr[idx + 1] = (byte)Math.Clamp(g * 255, 0, 255);
+                bgr[idx + 2] = (byte)Math.Clamp(r * 255, 0, 255);
             }
-        }
+        });
         return bgr;
     }
 
-    private static double InterpBilinearSameChannel(double[,] channel, int width, int height, string pattern, int x, int y, int targetChannel)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static double Interp3x3(double[,] channel, int width, int height, int y, int x, int patternIndex, int targetChannel)
     {
         double sum = 0;
         int count = 0;
-        for (int dy = -2; dy <= 2; dy++)
+        for (int dy = -1; dy <= 1; dy++)
         {
-            for (int dx = -2; dx <= 2; dx++)
+            for (int dx = -1; dx <= 1; dx++)
             {
-                int nx = x + dx;
+                if (dy == 0 && dx == 0) continue;
                 int ny = y + dy;
-                if (nx >= 0 && nx < width && ny >= 0 && ny < height && ChannelAt(pattern, ny & 1, nx & 1) == targetChannel)
+                int nx = x + dx;
+                if ((uint)nx < (uint)width && (uint)ny < (uint)height && ChannelAt(patternIndex, ny & 1, nx & 1) == targetChannel)
                 {
                     double v = channel[ny, nx];
                     if (!double.IsNaN(v) && !double.IsInfinity(v))
@@ -90,15 +111,28 @@ public static class DebayerService
         return count > 0 ? sum / count : 0;
     }
 
-    // Channel at (y % 2, x % 2) for each pattern (row, col) -> 0=R, 1=G, 2=B
-    private static int ChannelAt(string pat, int r, int c)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int PatternIndex(string pat)
     {
-        return (pat, r, c) switch
+        return pat switch
         {
-            ("RGGB", 0, 0) => 0, ("RGGB", 0, 1) => 1, ("RGGB", 1, 0) => 1, ("RGGB", 1, 1) => 2,
-            ("BGGR", 0, 0) => 2, ("BGGR", 0, 1) => 1, ("BGGR", 1, 0) => 1, ("BGGR", 1, 1) => 0,
-            ("GRBG", 0, 0) => 1, ("GRBG", 0, 1) => 0, ("GRBG", 1, 0) => 2, ("GRBG", 1, 1) => 1,
-            ("GBRG", 0, 0) => 1, ("GBRG", 0, 1) => 2, ("GBRG", 1, 0) => 0, ("GBRG", 1, 1) => 1,
+            "RGGB" => 0,
+            "BGGR" => 1,
+            "GRBG" => 2,
+            "GBRG" => 3,
+            _ => 0
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ChannelAt(int patternIndex, int r, int c)
+    {
+        return (patternIndex, r, c) switch
+        {
+            (0, 0, 0) => 0, (0, 0, 1) => 1, (0, 1, 0) => 1, (0, 1, 1) => 2, // RGGB
+            (1, 0, 0) => 2, (1, 0, 1) => 1, (1, 1, 0) => 1, (1, 1, 1) => 0, // BGGR
+            (2, 0, 0) => 1, (2, 0, 1) => 0, (2, 1, 0) => 2, (2, 1, 1) => 1, // GRBG
+            (3, 0, 0) => 1, (3, 0, 1) => 2, (3, 1, 0) => 0, (3, 1, 1) => 1, // GBRG
             _ => 1
         };
     }

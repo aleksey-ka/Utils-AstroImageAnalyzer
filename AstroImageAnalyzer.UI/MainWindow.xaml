@@ -97,26 +97,61 @@
             </Setter>
         </Style>
 
-        <!-- Style for checkable submenu items (e.g. Debayer) so the check mark is visible -->
-        <Style x:Key="CheckableMenuItemStyle" TargetType="MenuItem">
+        <!-- Same template for all submenu items (File and View): header + gesture text on the right -->
+        <Style x:Key="SubmenuItemStyle" TargetType="MenuItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="Padding" Value="24,6,12,6"/>
+            <Setter Property="Padding" Value="10,4,10,4"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
                         <Border x:Name="Border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="20"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock x:Name="CheckMark" Grid.Column="0" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                                <ContentPresenter Grid.Column="0" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}" VerticalAlignment="Center" Margin="16,0,0,0"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource SurfaceLightBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Checkable submenu item: same as above + checkmark in left padding -->
+        <Style x:Key="CheckableMenuItemStyle" TargetType="MenuItem" BasedOn="{StaticResource SubmenuItemStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" ClipToBounds="False">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter Grid.Column="0" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}" VerticalAlignment="Center" Margin="16,0,0,0"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                                <TextBlock x:Name="CheckMark" Grid.Column="0" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                           Margin="-8,0,0,0" Width="10" TextAlignment="Center" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.45"/>
+                            </Trigger>
                             <Trigger Property="IsHighlighted" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="{StaticResource SurfaceLightBrush}"/>
                             </Trigger>
@@ -178,9 +213,11 @@
                     <MenuItem Header="_File"
                               Style="{StaticResource TopLevelMenuHeaderStyle}">
                         <MenuItem Header="_Open..."
+                                  Style="{StaticResource SubmenuItemStyle}"
                                   Command="{Binding LoadFilesCommand}"
                                   InputGestureText="Ctrl+O"/>
                         <MenuItem Header="Open _Last"
+                                  Style="{StaticResource SubmenuItemStyle}"
                                   Command="{Binding LoadLastFileCommand}"
                                   InputGestureText="Ctrl+L"/>
                     </MenuItem>
@@ -191,8 +228,10 @@
                                   Command="{Binding ToggleDebayerCommand}"
                                   IsCheckable="True"
                                   IsChecked="{Binding IsDebayerEnabled, Mode=OneWay}"
+                                  IsEnabled="{Binding IsDebayerAvailable}"
                                   ToolTip="Show CFA (Bayer) images in color when enabled"/>
                         <MenuItem Header="_Toggle Full Screen"
+                                  Style="{StaticResource CheckableMenuItemStyle}"
                                   Command="{x:Static local:MainWindow.ToggleFullScreenCommand}"
                                   InputGestureText="Ctrl+F"/>
                     </MenuItem>
