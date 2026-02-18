@@ -85,4 +85,32 @@ public partial class MainWindow : Window
             MaximizeButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
         }
     }
+
+    private void ImagePanel_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            e.Effects = DragDropEffects.Copy;
+            e.Handled = true;
+        }
+    }
+
+    private void ImagePanel_Drop(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+            return;
+
+        var paths = e.Data.GetData(DataFormats.FileDrop) as string[];
+        if (paths == null || paths.Length == 0)
+            return;
+
+        var firstPath = paths[0];
+        if (string.IsNullOrWhiteSpace(firstPath))
+            return;
+
+        if (DataContext is MainViewModel vm)
+            vm.LoadFromFilePath(firstPath.Trim());
+
+        e.Handled = true;
+    }
 }

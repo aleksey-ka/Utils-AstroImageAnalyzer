@@ -110,100 +110,100 @@ public class MainViewModel : INotifyPropertyChanged
         
         if (dialog.ShowDialog() == true)
         {
-            try
+            LoadFromFilePath(dialog.FileName);
+        }
+    }
+    
+    /// <summary>
+    /// Loads all files in the same folder as the given file that share the same extension.
+    /// Same logic as File → Open; used for menu and for drag-and-drop.
+    /// </summary>
+    public void LoadFromFilePath(string selectedFilePath)
+    {
+        try
+        {
+            StatusMessage = "Scanning folder...";
+
+            if (!File.Exists(selectedFilePath))
             {
-                StatusMessage = "Scanning folder...";
-                
-                var selectedFilePath = dialog.FileName;
-                if (!File.Exists(selectedFilePath))
+                StatusMessage = "Selected file does not exist";
+                return;
+            }
+
+            var folderPath = Path.GetDirectoryName(selectedFilePath);
+            if (string.IsNullOrEmpty(folderPath))
+            {
+                StatusMessage = "Could not determine folder path";
+                return;
+            }
+
+            _loadedFolderName = Path.GetFileName(folderPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            OnPropertyChanged(nameof(LoadedFolderName));
+            OnPropertyChanged(nameof(HasLoadedFolder));
+
+            var extension = Path.GetExtension(selectedFilePath);
+            if (string.IsNullOrEmpty(extension))
+            {
+                StatusMessage = "Selected file has no extension";
+                return;
+            }
+
+            var searchPattern = "*" + extension;
+            var matchingFiles = Directory.GetFiles(folderPath, searchPattern, SearchOption.TopDirectoryOnly);
+
+            if (matchingFiles.Length == 0)
+            {
+                StatusMessage = $"No files with extension {extension} found in folder";
+                return;
+            }
+
+            LoadedImages.Clear();
+            Statistics.Clear();
+            SelectedImage = null;
+            SelectedStatistics = null;
+
+            StatusMessage = $"Loading {matchingFiles.Length} file(s)...";
+
+            int loadedCount = 0;
+            int errorCount = 0;
+
+            foreach (var filePath in matchingFiles.OrderBy(f => f))
+            {
+                try
                 {
-                    StatusMessage = "Selected file does not exist";
-                    return;
+                    var imageData = _fitsReader.ReadFitsFile(filePath);
+                    LoadedImages.Add(imageData);
+
+                    var stats = _statisticsCalculator.CalculateStatistics(imageData);
+                    Statistics.Add(stats);
+
+                    loadedCount++;
                 }
-                
-                // Extract folder path and extension from selected file
-                var folderPath = Path.GetDirectoryName(selectedFilePath);
-                if (string.IsNullOrEmpty(folderPath))
+                catch (Exception ex)
                 {
-                    StatusMessage = "Could not determine folder path";
-                    return;
+                    errorCount++;
+                    StatusMessage = $"Error loading {Path.GetFileName(filePath)}: {ex.Message}";
                 }
-                
-                _loadedFolderName = Path.GetFileName(folderPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-                OnPropertyChanged(nameof(LoadedFolderName));
-                OnPropertyChanged(nameof(HasLoadedFolder));
-                
-                var extension = Path.GetExtension(selectedFilePath);
-                if (string.IsNullOrEmpty(extension))
-                {
-                    StatusMessage = "Selected file has no extension";
-                    return;
-                }
-                
-                // Find all files in the folder with the same extension
-                var searchPattern = "*" + extension;
-                var matchingFiles = Directory.GetFiles(folderPath, searchPattern, SearchOption.TopDirectoryOnly);
-                
-                if (matchingFiles.Length == 0)
-                {
-                    StatusMessage = $"No files with extension {extension} found in folder";
-                    return;
-                }
-                
-                // Replace previous folder: clear current list and selection
-                LoadedImages.Clear();
-                Statistics.Clear();
-                SelectedImage = null;
-                SelectedStatistics = null;
-                
-                StatusMessage = $"Loading {matchingFiles.Length} file(s)...";
-                
-                int loadedCount = 0;
-                int errorCount = 0;
-                
-                foreach (var filePath in matchingFiles.OrderBy(f => f))
-                {
-                    try
-                    {
-                        var imageData = _fitsReader.ReadFitsFile(filePath);
-                        LoadedImages.Add(imageData);
-                        
-                        var stats = _statisticsCalculator.CalculateStatistics(imageData);
-                        Statistics.Add(stats);
-                        
-                        loadedCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        errorCount++;
-                        StatusMessage = $"Error loading {Path.GetFileName(filePath)}: {ex.Message}";
-                    }
-                }
-                
-                if (LoadedImages.Count > 0)
-                {
-                    // Select the file the user picked in the dialog, or the first if it failed to load
-                    var normalizedSelected = Path.GetFullPath(selectedFilePath);
-                    var picked = LoadedImages.FirstOrDefault(img => string.Equals(Path.GetFullPath(img.FilePath), normalizedSelected, StringComparison.OrdinalIgnoreCase));
-                    SelectedImage = picked ?? LoadedImages[0];
-                    if (errorCount > 0)
-                    {
-                        StatusMessage = $"Loaded {loadedCount} file(s), {errorCount} error(s)";
-                    }
-                    else
-                    {
-                        StatusMessage = $"Loaded {loadedCount} file(s)";
-                    }
-                }
+            }
+
+            if (LoadedImages.Count > 0)
+            {
+                var normalizedSelected = Path.GetFullPath(selectedFilePath);
+                var picked = LoadedImages.FirstOrDefault(img => string.Equals(Path.GetFullPath(img.FilePath), normalizedSelected, StringComparison.OrdinalIgnoreCase));
+                SelectedImage = picked ?? LoadedImages[0];
+                if (errorCount > 0)
+                    StatusMessage = $"Loaded {loadedCount} file(s), {errorCount} error(s)";
                 else
-                {
-                    StatusMessage = $"Failed to load any files ({errorCount} error(s))";
-                }
+                    StatusMessage = $"Loaded {loadedCount} file(s)";
             }
-            catch (Exception ex)
+            else
             {
-                StatusMessage = $"Error: {ex.Message}";
+                StatusMessage = $"Failed to load any files ({errorCount} error(s))";
             }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error: {ex.Message}";
         }
     }
     

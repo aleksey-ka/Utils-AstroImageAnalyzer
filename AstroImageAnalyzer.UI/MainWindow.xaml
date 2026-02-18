@@ -240,22 +240,33 @@
                     <RowDefinition Height="1*"/>
                 </Grid.RowDefinitions>
                 
-                <!-- Image Display Area -->
+                <!-- Image Display Area (supports drag-and-drop of a file to load folder) -->
                 <Border Grid.Row="0"
                         Margin="1,0,1,1"
                         Background="{StaticResource SurfaceBrush}"
                         BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1">
+                        BorderThickness="1"
+                        AllowDrop="True"
+                        Drop="ImagePanel_Drop"
+                        DragOver="ImagePanel_DragOver">
                     <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto">
                             <Border Background="{StaticResource SurfaceBrush}" Padding="2">
                                 <Grid>
-                                    <TextBlock Text="Select a file to view image data" 
-                                               HorizontalAlignment="Center" 
-                                               VerticalAlignment="Center"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               TextWrapping="Wrap"
-                                               Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}"/>
+                                    <StackPanel HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
+                                        <TextBlock Text="Drop an image file here or click Open below"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,0,0,12"/>
+                                        <Button Content="Open"
+                                                Command="{Binding LoadFilesCommand}"
+                                                HorizontalAlignment="Center"
+                                                Padding="16,8"
+                                                MinWidth="80"/>
+                                    </StackPanel>
 
                                     <Image Source="{Binding PreviewImage}"
                                            Stretch="Uniform"
