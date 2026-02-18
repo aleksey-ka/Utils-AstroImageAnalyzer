@@ -29,6 +29,9 @@ public class MainViewModel : INotifyPropertyChanged
     private PlotModel? _histogramModel;
     private ImageSource? _previewImage;
     private bool _isDebayerEnabled;
+    private bool _isFitViewEnabled = true;
+    private double _viewportWidth;
+    private double _viewportHeight;
     private double? _stfMin;
     private double? _stfMax;
 
@@ -40,6 +43,7 @@ public class MainViewModel : INotifyPropertyChanged
         LoadFilesCommand = new RelayCommand(_ => LoadFiles());
         LoadLastFileCommand = new RelayCommand(_ => LoadLastFile());
         ToggleDebayerCommand = new RelayCommand(_ => IsDebayerEnabled = !IsDebayerEnabled);
+        ToggleFitViewCommand = new RelayCommand(_ => IsFitViewEnabled = !IsFitViewEnabled);
 
         HistogramModel = CreateEmptyHistogramModel();
     }
@@ -55,6 +59,8 @@ public class MainViewModel : INotifyPropertyChanged
             _selectedImage = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsDebayerAvailable));
+            OnPropertyChanged(nameof(ImageDisplayWidth));
+            OnPropertyChanged(nameof(ImageDisplayHeight));
             UpdateSelectedStatistics();
             if (value != null)
                 WindowPlacement.SaveLastFilePath(value.FilePath);
@@ -90,6 +96,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand LoadFilesCommand { get; }
     public ICommand LoadLastFileCommand { get; }
     public ICommand ToggleDebayerCommand { get; }
+    public ICommand ToggleFitViewCommand { get; }
 
     /// <summary>Set STF limit from histogram click. Called from view when user clicks the graph.</summary>
     public void SetStfLimitFromHistogram(double value, bool isLowerLimit)
@@ -138,6 +145,64 @@ public class MainViewModel : INotifyPropertyChanged
             UpdatePreviewImage();
         }
     }
+
+    /// <summary>When true, image is scaled to fit the view (Uniform); when false, shown at 1:1 pixels (None).</summary>
+    public bool IsFitViewEnabled
+    {
+        get => _isFitViewEnabled;
+        set
+        {
+            if (_isFitViewEnabled == value) return;
+            _isFitViewEnabled = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ImageStretch));
+            OnPropertyChanged(nameof(ImageDisplayWidth));
+            OnPropertyChanged(nameof(ImageDisplayHeight));
+            OnPropertyChanged(nameof(FitViewMaxWidth));
+            OnPropertyChanged(nameof(FitViewMaxHeight));
+        }
+    }
+
+    /// <summary>Viewport width of the image area (set by the view). Used to constrain content when Fit View is on.</summary>
+    public double ViewportWidth
+    {
+        get => _viewportWidth;
+        set
+        {
+            if (Math.Abs(_viewportWidth - value) < 0.01) return;
+            _viewportWidth = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FitViewMaxWidth));
+        }
+    }
+
+    /// <summary>Viewport height of the image area (set by the view).</summary>
+    public double ViewportHeight
+    {
+        get => _viewportHeight;
+        set
+        {
+            if (Math.Abs(_viewportHeight - value) < 0.01) return;
+            _viewportHeight = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FitViewMaxHeight));
+        }
+    }
+
+    /// <summary>When Fit View is on, max width for the image container (viewport); otherwise NaN (no constraint).</summary>
+    public double FitViewMaxWidth => _isFitViewEnabled ? _viewportWidth : double.NaN;
+
+    /// <summary>When Fit View is on, max height for the image container (viewport); otherwise NaN (no constraint).</summary>
+    public double FitViewMaxHeight => _isFitViewEnabled ? _viewportHeight : double.NaN;
+
+    /// <summary>Stretch mode for the preview image based on Fit View toggle.</summary>
+    public Stretch ImageStretch => _isFitViewEnabled ? Stretch.Uniform : Stretch.None;
+
+    /// <summary>When Fit View is off, the pixel width for 1:1 display; otherwise NaN (auto).</summary>
+    public double ImageDisplayWidth => _isFitViewEnabled || SelectedImage == null ? double.NaN : SelectedImage.Width;
+
+    /// <summary>When Fit View is off, the pixel height for 1:1 display; otherwise NaN (auto).</summary>
+    public double ImageDisplayHeight => _isFitViewEnabled || SelectedImage == null ? double.NaN : SelectedImage.Height;
 
     private void LoadFiles()
     {

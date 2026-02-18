@@ -1,6 +1,8 @@
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using AstroImageAnalyzer.Core.Services;
 using AstroImageAnalyzer.UI.ViewModels;
 using OxyPlot.Axes;
@@ -13,6 +15,7 @@ namespace AstroImageAnalyzer.UI;
 public partial class MainWindow : Window
 {
     public static readonly RoutedCommand ToggleFullScreenCommand = new();
+    public static readonly RoutedCommand ToggleFitViewCommand = new();
 
     private bool _isFullScreen;
     private double _restoreLeft, _restoreTop, _restoreWidth, _restoreHeight;
@@ -22,6 +25,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         CommandBindings.Add(new CommandBinding(ToggleFullScreenCommand, (_, _) => ToggleFullScreen()));
+        CommandBindings.Add(new CommandBinding(ToggleFitViewCommand, (_, _) => ToggleFitView()));
         
         // Restore last position and size (or keep XAML defaults)
         WindowPlacement.Restore(this, 1400, 900);
@@ -38,6 +42,13 @@ public partial class MainWindow : Window
         
         Closing += MainWindow_Closing;
         KeyDown += MainWindow_KeyDown;
+
+        Loaded += (_, _) =>
+        {
+            ImageScrollViewer.SizeChanged += (_, _) => UpdateImageViewport();
+            ImageScrollViewer.ScrollChanged += (_, _) => UpdateImageViewport();
+            Dispatcher.BeginInvoke(() => UpdateImageViewport(), System.Windows.Threading.DispatcherPriority.Loaded);
+        };
     }
 
     private void MainWindow_KeyDown(object sender, KeyEventArgs e)
@@ -180,6 +191,35 @@ public partial class MainWindow : Window
         {
             // E740 = full screen (expand), E73E = exit full screen (back to window)
             FullScreenButton.Content = _isFullScreen ? "\uE73E" : "\uE740";
+        }
+    }
+
+    private void ToggleFitView()
+    {
+        if (DataContext is not MainViewModel vm)
+            return;
+        vm.IsFitViewEnabled = !vm.IsFitViewEnabled;
+        ApplyFitViewToImage(vm);
+    }
+
+    private void ApplyFitViewToImage(MainViewModel _)
+    {
+        UpdateImageViewport();
+        ImageScrollViewer.InvalidateMeasure();
+        ImageScrollViewer.UpdateLayout();
+    }
+
+    private void UpdateImageViewport()
+    {
+        if (DataContext is not MainViewModel vm) return;
+        var w = ImageScrollViewer.ViewportWidth;
+        var h = ImageScrollViewer.ViewportHeight;
+        // Subtract Border padding (2+2) so Grid + padding fits exactly in viewport (avoids scrollbar)
+        const double padding = 4;
+        if (w > padding && h > padding)
+        {
+            vm.ViewportWidth = Math.Max(1, w - padding);
+            vm.ViewportHeight = Math.Max(1, h - padding);
         }
     }
 

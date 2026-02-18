@@ -24,6 +24,9 @@
         <KeyBinding Key="L"
                     Modifiers="Control"
                     Command="{Binding LoadLastFileCommand}" />
+        <KeyBinding Key="V"
+                    Modifiers="Control"
+                    Command="{x:Static local:MainWindow.ToggleFitViewCommand}" />
     </Window.InputBindings>
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="0"
@@ -35,6 +38,8 @@
     <Window.Resources>
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:DoubleToUnsetOrValueConverter x:Key="DoubleToUnsetOrValueConverter"/>
+        <converters:NanToZeroConverter x:Key="NanToZeroConverter"/>
 
         <!-- Style for the icon-like menu item so it doesn't look like a normal menu entry -->
         <Style x:Key="IconMenuItemStyle" TargetType="MenuItem">
@@ -230,6 +235,13 @@
                                   IsChecked="{Binding IsDebayerEnabled, Mode=OneWay}"
                                   IsEnabled="{Binding IsDebayerAvailable}"
                                   ToolTip="Show CFA (Bayer) images in color when enabled"/>
+                        <MenuItem Header="_Fit View"
+                                  Style="{StaticResource CheckableMenuItemStyle}"
+                                  Command="{x:Static local:MainWindow.ToggleFitViewCommand}"
+                                  InputGestureText="Ctrl+V"
+                                  IsCheckable="True"
+                                  IsChecked="{Binding IsFitViewEnabled, Mode=OneWay}"
+                                  ToolTip="Scale image to fit the view when enabled; 1:1 pixels when disabled"/>
                         <MenuItem Header="_Toggle Full Screen"
                                   Style="{StaticResource CheckableMenuItemStyle}"
                                   Command="{x:Static local:MainWindow.ToggleFullScreenCommand}"
@@ -429,10 +441,14 @@
                         AllowDrop="True"
                         Drop="ImagePanel_Drop"
                         DragOver="ImagePanel_DragOver">
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                    <ScrollViewer x:Name="ImageScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto">
                             <Border Background="{StaticResource SurfaceBrush}" Padding="2">
-                                <Grid>
+                                <Grid MinWidth="{Binding ImageDisplayWidth, Converter={StaticResource NanToZeroConverter}}"
+                                      MinHeight="{Binding ImageDisplayHeight, Converter={StaticResource NanToZeroConverter}}"
+                                      MaxWidth="{Binding FitViewMaxWidth, Converter={StaticResource DoubleToUnsetOrValueConverter}}"
+                                      MaxHeight="{Binding FitViewMaxHeight, Converter={StaticResource DoubleToUnsetOrValueConverter}}">
                                     <StackPanel HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
                                                 Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
@@ -448,8 +464,11 @@
                                                 MinWidth="80"/>
                                     </StackPanel>
 
-                                    <Image Source="{Binding PreviewImage}"
-                                           Stretch="Uniform"
+                                    <Image x:Name="PreviewImageControl"
+                                           Source="{Binding PreviewImage}"
+                                           Stretch="{Binding ImageStretch}"
+                                           Width="{Binding ImageDisplayWidth, Converter={StaticResource DoubleToUnsetOrValueConverter}}"
+                                           Height="{Binding ImageDisplayHeight, Converter={StaticResource DoubleToUnsetOrValueConverter}}"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Center"
                                            Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisibilityConverter}}"/>
