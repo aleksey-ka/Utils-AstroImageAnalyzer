@@ -11,11 +11,12 @@ public static class DebayerService
 {
     /// <summary>
     /// Debayers raw CFA pixel data to BGR24 (3 bytes per pixel: Blue, Green, Red).
+    /// Uses STF range (min/max) for normalization, then gray-world channel balance to avoid green cast from 2:1 green in Bayer.
     /// </summary>
     /// <param name="pixelData">Raw 2D pixel data (height, width)</param>
     /// <param name="pattern">Bayer pattern: RGGB, BGGR, GRBG, or GBRG</param>
-    /// <param name="min">Minimum value for normalization (e.g. image min)</param>
-    /// <param name="max">Maximum value for normalization (e.g. image max)</param>
+    /// <param name="min">STF minimum (black point)</param>
+    /// <param name="max">STF maximum (white point)</param>
     /// <returns>BGR24 byte array, length width*height*3, stride = width*3</returns>
     public static byte[] DebayerBilinear(double[,] pixelData, string pattern, double min, double max)
     {
@@ -66,7 +67,30 @@ public static class DebayerService
             }
         });
 
-        // Phase 3: normalize and write BGR (parallel over rows)
+        // Phase 3: compute channel means after STF normalization (for gray-world balance)
+        long sumR = 0, sumG = 0, sumB = 0;
+        int n = width * height;
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                double r = Math.Clamp((R[y, x] - min) / range, 0, 1);
+                double g = Math.Clamp((G[y, x] - min) / range, 0, 1);
+                double b = Math.Clamp((B[y, x] - min) / range, 0, 1);
+                sumR += (long)(r * 1_000_000);
+                sumG += (long)(g * 1_000_000);
+                sumB += (long)(b * 1_000_000);
+            }
+        }
+        double meanR = sumR / 1_000_000.0 / n;
+        double meanG = sumG / 1_000_000.0 / n;
+        double meanB = sumB / 1_000_000.0 / n;
+        double targetMean = (meanR + meanG + meanB) / 3.0;
+        double scaleR = targetMean > 1e-6 && meanR > 1e-6 ? targetMean / meanR : 1.0;
+        double scaleG = targetMean > 1e-6 && meanG > 1e-6 ? targetMean / meanG : 1.0;
+        double scaleB = targetMean > 1e-6 && meanB > 1e-6 ? targetMean / meanB : 1.0;
+
+        // Phase 4: normalize with STF, apply gray-world balance, write BGR (parallel over rows)
         var bgr = new byte[width * height * 3];
         Parallel.For(0, height, y =>
         {
@@ -74,9 +98,9 @@ public static class DebayerService
             for (int x = 0; x < width; x++)
             {
                 int idx = rowStart + x * 3;
-                double r = (R[y, x] - min) / range;
-                double g = (G[y, x] - min) / range;
-                double b = (B[y, x] - min) / range;
+                double r = Math.Clamp((R[y, x] - min) / range, 0, 1) * scaleR;
+                double g = Math.Clamp((G[y, x] - min) / range, 0, 1) * scaleG;
+                double b = Math.Clamp((B[y, x] - min) / range, 0, 1) * scaleB;
                 bgr[idx] = (byte)Math.Clamp(b * 255, 0, 255);
                 bgr[idx + 1] = (byte)Math.Clamp(g * 255, 0, 255);
                 bgr[idx + 2] = (byte)Math.Clamp(r * 255, 0, 255);
