@@ -8,7 +8,7 @@
         xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
-        Title="FITS Image Analyzer" Height="900" Width="1400"
+        Title="Astro Image Analyzer" Height="900" Width="1400"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BackgroundBrush}"
         ResizeMode="CanResize"
@@ -250,7 +250,7 @@
                                   VerticalScrollBarVisibility="Auto">
                             <Border Background="{StaticResource SurfaceBrush}" Padding="2">
                                 <Grid>
-                                    <TextBlock Text="Select a FITS file to view image data" 
+                                    <TextBlock Text="Select a file to view image data" 
                                                HorizontalAlignment="Center" 
                                                VerticalAlignment="Center"
                                                Foreground="{StaticResource TextSecondaryBrush}"

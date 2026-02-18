@@ -103,7 +103,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select a FITS file (all files with the same extension in the folder will be loaded)",
+            Title = "Select an image file (all files with the same extension in the folder will be loaded)",
             Filter = "FITS files (*.fits;*.fit;*.fts)|*.fits;*.fit;*.fts|All files (*.*)|*.*",
             Multiselect = false
         };
