@@ -419,14 +419,16 @@
                     </ScrollViewer>
                 </Border>
                 
-                <!-- Statistics Chart -->
+                <!-- Statistics Chart: click to set STF max, Ctrl+click to set STF min -->
                 <Border Grid.Row="1"
                         Margin="1,1,1,0"
                         Background="{StaticResource SurfaceBrush}"
                         BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="1">
-                    <oxy:PlotView Model="{Binding HistogramModel}" 
-                                  Background="{StaticResource SurfaceBrush}"/>
+                    <oxy:PlotView x:Name="HistogramPlotView" Model="{Binding HistogramModel}" 
+                                  Background="{StaticResource SurfaceBrush}"
+                                  PreviewMouseDown="HistogramPlotView_PreviewMouseDown"
+                                  ToolTip="Click to set STF max; Ctrl+Click to set STF min"/>
                 </Border>
             </Grid>
             

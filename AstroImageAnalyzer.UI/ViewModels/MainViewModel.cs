@@ -11,6 +11,7 @@ using AstroImageAnalyzer.Core.Services;
 using AstroImageAnalyzer.UI;
 using Microsoft.Win32;
 using OxyPlot;
+using OxyPlot.Annotations;
 using OxyPlot.Axes;
 using OxyPlot.Series;
 
@@ -28,6 +29,8 @@ public class MainViewModel : INotifyPropertyChanged
     private PlotModel? _histogramModel;
     private ImageSource? _previewImage;
     private bool _isDebayerEnabled;
+    private double? _stfMin;
+    private double? _stfMax;
 
     public MainViewModel(IFitsReader fitsReader, IStatisticsCalculator statisticsCalculator)
     {
@@ -86,7 +89,19 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand LoadFilesCommand { get; }
     public ICommand LoadLastFileCommand { get; }
     public ICommand ToggleDebayerCommand { get; }
-    
+
+    /// <summary>Set STF limit from histogram click. Called from view when user clicks the graph.</summary>
+    public void SetStfLimitFromHistogram(double value, bool isLowerLimit)
+    {
+        if (isLowerLimit)
+            _stfMin = value;
+        else
+            _stfMax = value;
+        UpdatePreviewImage();
+        UpdateHistogram();
+        StatusMessage = isLowerLimit ? $"STF min set to {value:F1}" : $"STF max set to {value:F1}";
+    }
+
     public PlotModel? HistogramModel
     {
         get => _histogramModel;
@@ -297,6 +312,14 @@ public class MainViewModel : INotifyPropertyChanged
             return;
         }
 
+        double effectiveMin = _stfMin ?? min;
+        double effectiveMax = _stfMax ?? max;
+        if (effectiveMin >= effectiveMax)
+        {
+            effectiveMin = min;
+            effectiveMax = max;
+        }
+
         int dpi = 96;
         BitmapSource bitmap;
 
@@ -304,7 +327,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (useDebayer)
         {
-            byte[] bgr = DebayerService.DebayerBilinear(SelectedImage.PixelData, SelectedImage.BayerPattern!, min, max);
+            byte[] bgr = DebayerService.DebayerBilinear(SelectedImage.PixelData, SelectedImage.BayerPattern!, effectiveMin, effectiveMax);
             int stride = width * 3;
             bitmap = BitmapSource.Create(
                 width,
@@ -319,7 +342,7 @@ public class MainViewModel : INotifyPropertyChanged
         else
         {
             var pixels = new byte[width * height];
-            double range = max - min;
+            double range = effectiveMax - effectiveMin;
             int index = 0;
             for (int y = 0; y < height; y++)
             {
@@ -331,7 +354,7 @@ public class MainViewModel : INotifyPropertyChanged
                         pixels[index++] = 0;
                         continue;
                     }
-                    double norm = (v - min) / range;
+                    double norm = (v - effectiveMin) / range;
                     pixels[index++] = (byte)Math.Clamp(norm * 255.0, 0.0, 255.0);
                 }
             }
@@ -356,6 +379,16 @@ public class MainViewModel : INotifyPropertyChanged
         {
             HistogramModel = CreateEmptyHistogramModel();
             return;
+        }
+
+        double dataMin = SelectedStatistics.Minimum;
+        double dataMax = SelectedStatistics.Maximum;
+        double effectiveMin = _stfMin ?? dataMin;
+        double effectiveMax = _stfMax ?? dataMax;
+        if (effectiveMin >= effectiveMax)
+        {
+            effectiveMin = dataMin;
+            effectiveMax = dataMax;
         }
         
         var model = new PlotModel
@@ -401,6 +434,33 @@ public class MainViewModel : INotifyPropertyChanged
         }
         
         model.Series.Add(series);
+
+        if (_stfMin.HasValue || _stfMax.HasValue)
+        {
+            if (_stfMin.HasValue)
+            {
+                model.Annotations.Add(new LineAnnotation
+                {
+                    Type = LineAnnotationType.Vertical,
+                    X = effectiveMin,
+                    Color = OxyColors.Orange,
+                    StrokeThickness = 1.5,
+                    LineStyle = LineStyle.Dash
+                });
+            }
+            if (_stfMax.HasValue)
+            {
+                model.Annotations.Add(new LineAnnotation
+                {
+                    Type = LineAnnotationType.Vertical,
+                    X = effectiveMax,
+                    Color = OxyColors.Orange,
+                    StrokeThickness = 1.5,
+                    LineStyle = LineStyle.Dash
+                });
+            }
+        }
+        
         HistogramModel = model;
     }
     

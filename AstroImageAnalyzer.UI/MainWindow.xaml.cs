@@ -1,7 +1,9 @@
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using AstroImageAnalyzer.Core.Services;
 using AstroImageAnalyzer.UI.ViewModels;
+using OxyPlot.Axes;
 
 namespace AstroImageAnalyzer.UI;
 
@@ -179,6 +181,30 @@ public partial class MainWindow : Window
             // E740 = full screen (expand), E73E = exit full screen (back to window)
             FullScreenButton.Content = _isFullScreen ? "\uE73E" : "\uE740";
         }
+    }
+
+    private void HistogramPlotView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left || DataContext is not MainViewModel vm)
+            return;
+
+        var model = vm.HistogramModel;
+        if (model == null)
+            return;
+
+        var bottomAxis = model.Axes.FirstOrDefault(a => a.Position == AxisPosition.Bottom);
+        if (bottomAxis == null)
+            return;
+
+        // Position relative to the plot; use PreviewMouseDown so we run before the plot control handles the event
+        var pos = e.GetPosition((System.Windows.IInputElement)sender);
+        double dataX = bottomAxis.InverseTransform(pos.X);
+        if (!double.IsNaN(bottomAxis.ActualMinimum) && !double.IsNaN(bottomAxis.ActualMaximum))
+            dataX = Math.Clamp(dataX, bottomAxis.ActualMinimum, bottomAxis.ActualMaximum);
+
+        bool isLower = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        vm.SetStfLimitFromHistogram(dataX, isLower);
+        e.Handled = true; // prevent the plot control from processing the click (tracker, etc.)
     }
 
     private void ImagePanel_DragOver(object sender, DragEventArgs e)
