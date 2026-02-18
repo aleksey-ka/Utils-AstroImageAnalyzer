@@ -1,0 +1,334 @@
+<Window x:Class="AstroImageAnalyzer.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AstroImageAnalyzer.UI"
+        xmlns:converters="clr-namespace:AstroImageAnalyzer.UI.Converters"
+        xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        mc:Ignorable="d"
+        Title="FITS Image Analyzer" Height="900" Width="1400"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}"
+        ResizeMode="CanResize"
+        WindowStyle="None"
+        AllowsTransparency="False">
+    <Window.InputBindings>
+        <KeyBinding Key="O"
+                    Modifiers="Control"
+                    Command="{Binding LoadFilesCommand}" />
+    </Window.InputBindings>
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            ResizeBorderThickness="6"
+                            CornerRadius="0"
+                            GlassFrameThickness="0"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <!-- Style for the icon-like menu item so it doesn't look like a normal menu entry -->
+        <Style x:Key="IconMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Background="{StaticResource BackgroundBrush}" Margin="-1,-1,-1,-1">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Custom Title Bar with Menu -->
+        <Border Grid.Row="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- App icon on the far left, used as draggable area -->
+                <Border Grid.Column="0"
+                        Width="20"
+                        Height="20"
+                        Margin="4,0,8,0"
+                        Background="Transparent">
+                    <Ellipse Stroke="#FF7F1F1F"
+                             StrokeThickness="3"
+                             Fill="Transparent"/>
+                </Border>
+                
+                <!-- Menu bar next to the icon -->
+                <Menu Grid.Column="1"
+                      Background="Transparent"
+                      Foreground="{StaticResource TextBrush}"
+                      VerticalAlignment="Center"
+                      Height="30">
+                    <MenuItem Header="_File">
+                        <MenuItem Header="_Open..."
+                                  Command="{Binding LoadFilesCommand}"
+                                  InputGestureText="Ctrl+O"/>
+                    </MenuItem>
+                </Menu>
+                
+                <!-- Window controls on the right -->
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <Button x:Name="MinimizeButton"
+                            Content="&#xE921;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="10"
+                            Width="46"
+                            Height="30"
+                            Background="Transparent"
+                            Foreground="{StaticResource TextBrush}"
+                            BorderThickness="0"
+                            Click="MinimizeButton_Click"
+                            Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderThickness="0">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SurfaceLightBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <Button x:Name="MaximizeButton"
+                            Content="&#xE922;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="10"
+                            Width="46"
+                            Height="30"
+                            Background="Transparent"
+                            Foreground="{StaticResource TextBrush}"
+                            BorderThickness="0"
+                            Click="MaximizeButton_Click"
+                            Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderThickness="0">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SurfaceLightBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    
+                    <Button x:Name="CloseButton"
+                            Content="&#xE8BB;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="10"
+                            Width="46"
+                            Height="30"
+                            Background="Transparent"
+                            Foreground="{StaticResource TextBrush}"
+                            BorderThickness="0"
+                            Click="CloseButton_Click"
+                            Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderThickness="0">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource ErrorBrush}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Background="{StaticResource BackgroundBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="240"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- File List Panel -->
+            <Border Grid.Column="0"
+                    Margin="0,0,1,0"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="{Binding LoadedFolderName}"
+                               FontWeight="Bold"
+                               Margin="6,4,6,4"
+                               Visibility="{Binding HasLoadedFolder, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                    <ListBox Grid.Row="1"
+                             Margin="4,0,4,4"
+                             ItemsSource="{Binding LoadedImages}" 
+                             SelectedItem="{Binding SelectedImage}"
+                             DisplayMemberPath="FileName"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                </Grid>
+            </Border>
+            
+            <!-- Image Display and Charts -->
+            <Grid Grid.Column="1" Background="{StaticResource BackgroundBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="4*"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Image Display Area -->
+                <Border Grid.Row="0"
+                        Margin="1,0,1,1"
+                        Background="{StaticResource SurfaceBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                            <Border Background="{StaticResource SurfaceBrush}" Padding="2">
+                                <Grid>
+                                    <TextBlock Text="Select a FITS file to view image data" 
+                                               HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}"/>
+
+                                    <Image Source="{Binding PreviewImage}"
+                                           Stretch="Uniform"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                </Grid>
+                            </Border>
+                    </ScrollViewer>
+                </Border>
+                
+                <!-- Statistics Chart -->
+                <Border Grid.Row="1"
+                        Margin="1,1,1,0"
+                        Background="{StaticResource SurfaceBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1">
+                    <oxy:PlotView Model="{Binding HistogramModel}" 
+                                  Background="{StaticResource SurfaceBrush}"/>
+                </Border>
+            </Grid>
+            
+            <!-- Statistics Panel -->
+            <Border Grid.Column="2"
+                    Margin="1,0,0,0"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Image Statistics"
+                               FontWeight="Bold"
+                               Margin="6,4,6,4"/>
+
+                    <ScrollViewer Grid.Row="1"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="8">
+                            <TextBlock Text="No image selected" 
+                                     Foreground="{StaticResource TextSecondaryBrush}"
+                                     Visibility="{Binding SelectedStatistics, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}"/>
+                            
+                            <StackPanel Visibility="{Binding SelectedStatistics, Converter={StaticResource NullToVisibilityConverter}}">
+                                <TextBlock Text="File:" FontWeight="Bold" Margin="0,4"/>
+                                <TextBlock Text="{Binding SelectedImage.FileName}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                
+                                <TextBlock Text="Dimensions:" FontWeight="Bold" Margin="0,4"/>
+                                <TextBlock Text="{Binding SelectedImage.Width, StringFormat='Width: {0} px'}" Margin="0,2"/>
+                                <TextBlock Text="{Binding SelectedImage.Height, StringFormat='Height: {0} px'}" Margin="0,0,0,8"/>
+                                
+                                <TextBlock Text="Statistics:" FontWeight="Bold" Margin="0,4"/>
+                                <TextBlock Text="{Binding SelectedStatistics.Minimum, StringFormat='Min: {0:F2}'}" Margin="0,2"/>
+                                <TextBlock Text="{Binding SelectedStatistics.Maximum, StringFormat='Max: {0:F2}'}" Margin="0,2"/>
+                                <TextBlock Text="{Binding SelectedStatistics.Mean, StringFormat='Mean: {0:F2}'}" Margin="0,2"/>
+                                <TextBlock Text="{Binding SelectedStatistics.Median, StringFormat='Median: {0:F2}'}" Margin="0,2"/>
+                                <TextBlock Text="{Binding SelectedStatistics.StandardDeviation, StringFormat='Std Dev: {0:F2}'}" Margin="0,2"/>
+                                <TextBlock Text="{Binding SelectedStatistics.Variance, StringFormat='Variance: {0:F2}'}" Margin="0,2"/>
+                                <TextBlock Text="{Binding SelectedStatistics.Sum, StringFormat='Sum: {0:F2}'}" Margin="0,2"/>
+                                <TextBlock Text="{Binding SelectedStatistics.PixelCount, StringFormat='Pixels: {0:N0}'}" Margin="0,2"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+        
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}"/>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FitsImageAnalyzer.Tests": {
+      "commandName": "Project",
+      "workingDirectory": "E:\\SOLID"
+    }
+  }
+}
